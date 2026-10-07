@@ -81,7 +81,7 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
 <div id="app">
   <aside id="panel">
     <h1>2655 Hamner Ave</h1>
-    <p class="sub">Design draft · lot 49′ × 552′ · 1 unit = 1 ft</p>
+    <p class="sub">Design draft · lot 63′ (Hamner) to 62′ × 552′ · 1 unit = 1 ft</p>
 
     <fieldset>
       <legend>Side lanes</legend>
@@ -151,7 +151,10 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 <script>
 (function(){
-const LOT_L = 552, LOT_W = 49, HZ = LOT_W/2;
+const LOT_L = 552, W_WEST = 63, W_EAST = 62;     // slight trapezoid: 63' at Hamner, 62' at the east end
+const hwAt = x => (W_WEST + (W_EAST - W_WEST)*Math.min(Math.max(x/LOT_L,0),1))/2;
+const HZ = W_EAST/2;                             // narrowest half-width; lanes are guaranteed here
+const LOT_AREA = (W_WEST + W_EAST)/2*LOT_L;
 // Vertical spec, feet above grade. Finished floor sits 6" above paving.
 const FF = 0.5, CLEAR1 = 12, SLAB = 1, CLEAR2 = 10, EAVE_H = 24, PITCH = 6/12;
 const OH_SIDE = 2, OH_FRONT = 6, OH_BACK = 2, WALL = 0.8;
@@ -224,8 +227,8 @@ const arrow = new THREE.Mesh(new THREE.ConeGeometry(6,20,3), mat(0x1D2327));
 arrow.rotation.x = -Math.PI/2; arrow.position.set(600,1,-60); scene.add(arrow);
 (function(){
   const g = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0,0.4,-HZ),new THREE.Vector3(LOT_L,0.4,-HZ),
-    new THREE.Vector3(LOT_L,0.4,HZ),new THREE.Vector3(0,0.4,HZ),new THREE.Vector3(0,0.4,-HZ)]);
+    new THREE.Vector3(0,0.4,-hwAt(0)),new THREE.Vector3(LOT_L,0.4,-hwAt(LOT_L)),
+    new THREE.Vector3(LOT_L,0.4,hwAt(LOT_L)),new THREE.Vector3(0,0.4,hwAt(0)),new THREE.Vector3(0,0.4,-hwAt(0))]);
   const l = new THREE.Line(g,new THREE.LineDashedMaterial({color:0x1F5FA8,dashSize:6,gapSize:4}));
   l.computeLineDistances(); scene.add(l);
 })();
@@ -238,8 +241,10 @@ const trees = new THREE.Group(); scene.add(trees);
   const add = (w,d,h,c,x,z) => neighbors.add(box(w,h,d,c,x,z,0));
   function box(w,h,d,c,x,z){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));
     m.position.set(x,h/2,z); m.castShadow=m.receiveShadow=true; return m; }
-  const pad = (x1,x2,z1,z2,c,y) => scene.add(flat(x2-x1,z2-z1,c,(x1+x2)/2,(z1+z2)/2,y||0.015));
-  const bld = (x1,x2,z1,z2,h,c) => add(x2-x1,z2-z1,h,c,(x1+x2)/2,(z1+z2)/2);
+  const SH = 7;   // lot widened from 49' to ~63'; shift neighbors outward to clear it
+  const off = (z1,z2) => z2<=0 ? -SH : (z1>=0 ? SH : 0);
+  const pad = (x1,x2,z1,z2,c,y) => { const o=off(z1,z2); scene.add(flat(x2-x1,z2-z1,c,(x1+x2)/2,(z1+z2)/2+o,y||0.015)); };
+  const bld = (x1,x2,z1,z2,h,c) => { const o=off(z1,z2); add(x2-x1,z2-z1,h,c,(x1+x2)/2,(z1+z2)/2+o); };
 
   // north neighbors: paved yard, flat-roof warehouse at the lot's east half, industrial cluster beyond
   pad(0,560,-260,-25,C.park);
@@ -279,7 +284,8 @@ const trees = new THREE.Group(); scene.add(trees);
   const spots = [];
   for(let z=-560; z<=560; z+=34){ spots.push([-104+3,z],[3-12,z+17]); }
   for(let z=-600; z<=600; z+=50) spots.push([622,z]);
-  [[220,-160],[280,-150],[100,-90],[210,95],[225,200],[225,260],[-360,-200],[-360,0],[-360,200],[-290,-110],[-290,190],[60,90],[200,80]].forEach(p=>spots.push(p));
+  [[220,-160],[280,-150],[100,-90],[210,95],[225,200],[225,260],[60,90],[200,80]].forEach(([x,z])=>spots.push([x, z+(z<0?-SH:SH)]));
+  [[-360,-200],[-360,0],[-360,200],[-290,-110],[-290,190]].forEach(p=>spots.push(p));
   const trunkG = new THREE.CylinderGeometry(0.8,1.1,10,6), crownG = new THREE.IcosahedronGeometry(9,0);
   const trunks = new THREE.InstancedMesh(trunkG, mat(0x6E5A44), spots.length);
   const crowns = new THREE.InstancedMesh(crownG, mat(0x5F7C47), spots.length);
@@ -350,7 +356,7 @@ function build(){
   const A1 = Math.max(1000, +$('a1').value||0), A2 = Math.max(500, +$('a2').value||0);
   $('nLaneV').textContent = ft(nL); $('sLaneV').textContent = ft(sL);
   const warn = [];
-  let W = LOT_W - nL - sL;
+  let W = W_EAST - nL - sL;
   if(W < 16){ warn.push('Lanes leave less than 16′ for the building; drawing it at 16′.'); W = 16; }
   const L1 = A1/W;
   let L2 = A2/W;
@@ -432,19 +438,25 @@ function build(){
 
   // ---------- site paving ----------
   const xE = x0 + L1, gapE = Math.max(0, LOT_L - xE);
-  G.site.add(flat(LOT_L,LOT_W,0x55595D,LOT_L/2,0,0.1));
-  G.site.add(flat(6,LOT_W,0x9DAE86,3,0,0.12));
+  (function(){
+    const sh = new THREE.Shape();
+    sh.moveTo(0,-hwAt(0)); sh.lineTo(LOT_L,-hwAt(LOT_L)); sh.lineTo(LOT_L,hwAt(LOT_L)); sh.lineTo(0,hwAt(0)); sh.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), mat(0x55595D));
+    m.material.side = THREE.DoubleSide; m.rotation.x = Math.PI/2; m.position.y = 0.1; m.receiveShadow = true; G.site.add(m);   // +90° keeps shape y as world z
+  })();
+  G.site.add(flat(6,W_WEST,0x9DAE86,3,0,0.12));
   [(-HZ+zN)/2,(zS+HZ)/2].forEach(z=>{ for(let x=x0+4; x<xE-4; x+=24) G.site.add(flat(10,0.6,0xF2F2EE,x+5,z,0.14)); });
   G.site.add(flat(L1+OH_FRONT+10, W+0.01, 0xC9C6BC, x0+(L1-OH_FRONT)/2, zc, 0.13));  // walk + entry plaza
   let stalls = 0;
-  function stallRow(xa,xb){ const n = Math.floor((xb-xa)/9); if(n<1) return; for(let i=0;i<=n;i++) G.site.add(flat(0.5,18,0xF2F2EE,xa+i*9,HZ-9,0.14)); stalls += n; }
+  function stallRow(xa,xb){ const n = Math.floor((xb-xa)/9); if(n<1) return; for(let i=0;i<=n;i++) G.site.add(flat(0.5,18,0xF2F2EE,xa+i*9,hwAt(xa+i*9)-9,0.14)); stalls += n; }
   stallRow(10, x0-OH_FRONT-10); stallRow(xE+8, LOT_L-4);
 
   // ================= EXTERIOR SHELL =================
   const vN = WALL/2, vS = W - WALL/2, iv1 = WALL, iv2 = W - WALL;
   // stairs: A = public, lobby up to the front balcony; B = private, enclosed, up into the parsonage
   const uA1 = Z2.coreA.u2, uA2 = uA1 + 20;
-  const uB2 = Math.min(Z2.ldk.u2 - 1.5, L2 - 1), uB1 = uB2 - 20;
+  // stair B tops out at the west edge of the parsonage LDK and runs down eastward (over kitchen/dining, away from classrooms)
+  const uB1 = Math.min(Z2.ldk.u1 + 1, L2 - 2), uB2 = uB1 + 20;
   // long walls: plinth + wall
   [['n',vN,G.ext],['s',vS,G.north]].forEach(([side,v,p])=>{
     ub(0, L1, v-WALL/2, v+WALL/2, 0, EY, M.wall, p);
@@ -469,10 +481,12 @@ function build(){
   // 1F: core — high windows (restrooms) north, office window south
   along(z1.core.u1+z1.core.len*0.5, z1.core.u2-2, 12, 6, (a,b)=>win('n',a,b,FF+8,FF+10.5));
   win('s', z1.core.u2-10, z1.core.u2-4, FF+3, FF+8);
-  door('s', uB1-4, uB1-0.5, 7.5);                                          // parsonage private entry (stair B)
+  door('s', uB2+0.5, uB2+4, 7.5);                                          // parsonage private entry (stair B)
   // classrooms north, corridor south
-  along(z1.edu.u1, z1.edu.u2, z1.edu.len/5, 5, (a,b)=>win('n',a,b,FF+3,FF+8.5));
-  along(z1.edu.u1, z1.edu.u2, 14, 3, (a,b)=>win('s',a,b,FF+4,FF+8.5));
+  const dbl = W >= 32;   // wide enough for rooms on both sides of a center corridor
+  along(z1.edu.u1, z1.edu.u2, z1.edu.len/(dbl?3:5), 5, (a,b)=>win('n',a,b,FF+3,FF+8.5));
+  if(dbl) along(z1.edu.u1, z1.edu.u2, z1.edu.len/2, 5, (a,b)=>win('s',a,b,FF+3,FF+8.5));
+  else along(z1.edu.u1, z1.edu.u2, 14, 3, (a,b)=>win('s',a,b,FF+4,FF+8.5));
   // kitchen: service roll-up south, small window north
   door('n', z1.kitchen.u1+z1.kitchen.len/2-5, z1.kitchen.u1+z1.kitchen.len/2+5, 10, M.metal);   // service roll-up
   // dining: big windows both sides + exit doors
@@ -486,8 +500,12 @@ function build(){
   }
   door('n', z1.seating.u2-6, z1.seating.u2, 8); door('s', z1.seating.u2-6, z1.seating.u2, 8);
   // 2F windows
-  [['s1',4],['s2',4],['b34',4]].forEach(([k,w])=>{ const c=(z2[k].u1+z2[k].u2)/2; win('s',c-w/2,c+w/2,Y2+3,Y2+7.5); });
-  along(z2.b34.u1, z2.b34.u2, z2.b34.len/2, 3.5, (a,b)=>win('n',a,b,Y2+3,Y2+7.5));
+  // parsonage bedroom block: bedrooms 3-4 on the north side of a center hall, suites 2 and 1 on the south side
+  const pb1 = z2.b34.u1, pb2 = Math.min(z2.s1.u2, L2), pbL = pb2 - pb1;
+  const sSplit = pb1 + pbL * z2.s2.a/(z2.s2.a + z2.s1.a);
+  const hv1 = (iv1+iv2)/2 - 2, hv2 = hv1 + 4;   // parsonage center hall
+  along(pb1, pb2, pbL/2, 3.5, (a,b)=>win('n',a,b,Y2+3,Y2+7.5));
+  [[pb1,sSplit],[sSplit,pb2]].forEach(([a,b])=>{ const c=(a+b)/2; win('s',c-2,c+2,Y2+3,Y2+7.5); });
   along(z2.ldk.u1, z2.ldk.u2, 12, 8, (a,b)=>{ win('n',a,b,Y2+2.5,Y2+8); });
   along(z2.aud.u1, z2.aud.u2, 12, 5, (a,b)=>{ win('n',a,b,Y2+3,Y2+8); win('s',a,b,Y2+3,Y2+8); });
   along(z2.store.u1+4, z2.store.u2-4, 10, 4, (a,b)=>ub(a,b,vS-0.6,vS+0.6,Y2+4,Y2+7,M.metal,G.north,false)); // louvers
@@ -557,8 +575,11 @@ function build(){
   const info = (z, floor, extra) => Object.assign({name:z.name, kr:z.kr, floor, sf:z.a, w:W, l:z.len}, extra||{});
   const cw = Math.min(6, W*0.28);
   plate(0, z1.core.u2, iv1, iv2, FF, 'core', info(z1.core,'1F'), G.int1);
-  plate(z1.edu.u1, z1.edu.u2, iv1, iv2-cw, FF, 'edu', info(z1.edu,'1F'), G.int1);
-  plate(z1.edu.u1, z1.edu.u2, iv2-cw, iv2, FF, 'core', {name:'Interior gallery corridor (6′)', kr:'실내 갤러리 회랑', floor:'1F', sf:cw*z1.edu.len, w:cw, l:z1.edu.len}, G.int1);
+  const cv1 = dbl ? (iv1+iv2)/2 - cw/2 : iv2 - cw, cv2 = cv1 + cw;   // corridor band
+  const eduInfo = (a,b) => info(z1.edu,'1F',{w:b-a, sf:(b-a)*z1.edu.len});
+  plate(z1.edu.u1, z1.edu.u2, iv1, cv1, FF, 'edu', eduInfo(iv1,cv1), G.int1);
+  if(dbl) plate(z1.edu.u1, z1.edu.u2, cv2, iv2, FF, 'edu', eduInfo(cv2,iv2), G.int1);
+  plate(z1.edu.u1, z1.edu.u2, cv1, cv2, FF, 'core', {name:'Interior gallery corridor (6′)', kr:'실내 갤러리 회랑', floor:'1F', sf:cw*z1.edu.len, w:cw, l:z1.edu.len}, G.int1);
   ['kitchen','dining','seating','stage'].forEach(k=>plate(z1[k].u1, Math.min(z1[k].u2, L1-WALL), iv1, iv2, FF, z1[k].type, info(z1[k],'1F'), G.int1));
 
   // stairs (solid stepped blocks), 20 risers × 0.65′, 1′ treads
@@ -570,9 +591,9 @@ function build(){
     }
   }
   stair(uA1, uA2, iv1, iv1+4.2, false, G.int1);          // climbs west toward the glass front
-  stair(uB1, uB2, iv2-4.2, iv2, true, G.int1);           // climbs east into the parsonage
-  longWall(iv2-4.4, uB1-4.5, uB2, FF, P1, M.part, G.int1);   // stair B enclosure
-  crossWall(uB1-4.5, iv2-4.4, iv2, FF, P1, M.part, G.int1);
+  stair(uB1, uB2, iv2-4.2, iv2, false, G.int1);          // climbs west up into the parsonage
+  longWall(iv2-4.4, uB1, uB2+4.5, FF, P1, M.part, G.int1);   // stair B enclosure + private entry
+  crossWall(uB2+4.5, iv2-4.4, iv2, FF, P1, M.part, G.int1);
 
   // core: lobby, restrooms (north), AV booth + pastor office (south), reception desk
   const k = z1.core.len/48, rw = Math.min(9, W*0.36), ow = Math.min(8, W*0.3);
@@ -590,16 +611,20 @@ function build(){
   ub(8*k, 14*k, W/2-1.6, W/2+1.6, FF, FF+3.5, M.table, G.int1);       // reception desk
 
   // education wing: 5 rooms (nursery + 4 classrooms) off a 6′ corridor
-  crossWall(z1.edu.u1, iv1, iv2, FF, P1, M.part, G.int1, [[iv2-cw+0.5, iv2-0.5]]);
-  const rl5 = z1.edu.len/5, doors = [];
-  for(let i=0;i<5;i++){
-    const a = z1.edu.u1 + i*rl5, c = a + rl5/2;
-    if(i>0) crossWall(a, iv1, iv2-cw, FF, P1, M.part, G.int1);
-    doors.push([c-1.6, c+1.6]);
-    ub(c-2.2, c+2.2, (iv1+iv2-cw)/2-2, (iv1+iv2-cw)/2+2, FF, FF+2.4, i===0 ? M.soft : M.table, G.int1);
-  }
-  longWall(iv2-cw, z1.edu.u1, z1.edu.u2, FF, P1, M.part, G.int1, doors);
-  crossWall(z1.edu.u2, iv1, iv2, FF, P1, M.part, G.int1, [[iv2-cw+0.5, iv2-1]]);
+  crossWall(z1.edu.u1, iv1, iv2, FF, P1, M.part, G.int1, [[cv1+0.5, cv2-0.5]]);
+  // single-loaded: 5 rooms north of the corridor; double-loaded: 3 north (nursery first) + 2 south
+  const sides = dbl ? [[iv1, cv1, 3, cv1], [cv2, iv2, 2, cv2]] : [[iv1, cv1, 5, cv1]];
+  sides.forEach(([a1, a2, n, wallV], si)=>{
+    const rl = z1.edu.len/n, doors = [];
+    for(let i=0;i<n;i++){
+      const a = z1.edu.u1 + i*rl, c = a + rl/2;
+      if(i>0) crossWall(a, a1, a2, FF, P1, M.part, G.int1);
+      doors.push([c-1.6, c+1.6]);
+      ub(c-2.2, c+2.2, (a1+a2)/2-2, (a1+a2)/2+2, FF, FF+2.4, (si===0 && i===0) ? M.soft : M.table, G.int1);
+    }
+    longWall(wallV, z1.edu.u1, z1.edu.u2, FF, P1, M.part, G.int1, doors);
+  });
+  crossWall(z1.edu.u2, iv1, iv2, FF, P1, M.part, G.int1, [[cv1+0.5, cv2-0.5]]);
 
   // commercial kitchen: line along north under a hood, prep island, walk-in cooler
   const ka = z1.kitchen.u1, kb = z1.kitchen.u2;
@@ -657,7 +682,12 @@ function build(){
       segs(z.u1, Math.min(z.u2, L2), gaps).forEach(([p,q])=>plate(p, q, a, b, Y2+0.05, z.type, inf, G.int2));
     });
   }
-  Object.values(z2).forEach(plate2);
+  ['coreA','aud','store','ldk'].forEach(k=>plate2(z2[k]));
+  const roomInfo = (z,a,b,l) => Object.assign(info(z,'2F'),{w:b-a, l, sf:(b-a)*l});
+  plate(pb1, pb2, iv1, hv1, Y2+0.05, 'home', roomInfo(z2.b34, iv1, hv1, pbL), G.int2);
+  plate(pb1, pb2, hv1, hv2, Y2+0.05, 'core', {name:'Parsonage hall', kr:'사택 복도', floor:'2F', w:4, l:pbL, sf:4*pbL}, G.int2);
+  plate(pb1, sSplit, hv2, iv2, Y2+0.05, 'home', roomInfo(z2.s2, hv2, iv2, sSplit-pb1), G.int2);
+  plate(sSplit, pb2, hv2, iv2, Y2+0.05, 'home', roomInfo(z2.s1, hv2, iv2, pb2-sSplit), G.int2);
   // balcony rail along the glass front, rail around stair A opening
   crossWall(z2.coreA.u2, iv1+4.3, iv2, Y2, Y2+3.5, M.glass, G.int2, [[W/2-3, W/2+3]], 0.25);
   longWall(iv1+4.3, uA1, uA2, Y2, Y2+3.5, M.glass, G.int2, [], 0.25);
@@ -679,19 +709,23 @@ function build(){
   ub(z2.store.u2-10, z2.store.u2-2, iv1+2, iv1+9, Y2, Y2+6, M.steel, G.int2);
   ub(z2.store.u2-10, z2.store.u2-2, iv2-9, iv2-2, Y2, Y2+6, M.steel, G.int2);
   crossWall(z2.store.u2, iv1, iv2, Y2, P2, M.part, G.int2, [[iv1+1, iv1+4.5]]);   // into the parsonage (locked door)
-  // parsonage: hall along north, rooms to the south
-  const hallV = iv1 + 4.2;
-  longWall(hallV, z2.b34.u1, L2, Y2, P2, M.part, G.int2, ['b34','s2','s1'].map(key=>[z2[key].u1+1, z2[key].u1+4]));
-  ['b34','s2','s1'].forEach(key=>crossWall(z2[key].u1, hallV, iv2, Y2, P2, M.part, G.int2));
-  const bedAt = (c, w) => ub(c-w/2, c+w/2, iv2-7, iv2-0.2, Y2, Y2+2, M.bed, G.int2);
-  bedAt((z2.s1.u1+z2.s1.u2)/2, 5.5);
-  bedAt((z2.s2.u1+z2.s2.u2)/2, 5);
-  bedAt(z2.b34.u1 + z2.b34.len*0.28, 3.5); bedAt(z2.b34.u1 + z2.b34.len*0.72, 3.5);
-  ub(z2.s1.u2-3.5, L2-0.2, hallV+0.3, hallV+5, Y2, P2, M.part, G.int2);   // bath 1 core
+  // parsonage bedroom block: center hall, bedrooms 3-4 north, suite 2 + suite 1 south
+  crossWall(pb1, iv1, iv2, Y2, P2, M.part, G.int2, [[hv1+0.3, hv2-0.3]]);
+  longWall(hv1, pb1, pb2, Y2, P2, M.part, G.int2, [[pb1+pbL*0.25-1.5, pb1+pbL*0.25+1.5],[pb1+pbL*0.75-1.5, pb1+pbL*0.75+1.5]]);
+  longWall(hv2, pb1, pb2, Y2, P2, M.part, G.int2, [[(pb1+sSplit)/2-1.5,(pb1+sSplit)/2+1.5],[(sSplit+pb2)/2-1.5,(sSplit+pb2)/2+1.5]]);
+  crossWall((pb1+pb2)/2, iv1, hv1, Y2, P2, M.part, G.int2);               // bedroom 3 | bedroom 4
+  crossWall(sSplit, hv2, iv2, Y2, P2, M.part, G.int2);                    // suite 2 | suite 1
+  const bed = (u1,u2,v1,v2) => ub(u1,u2,v1,v2,Y2,Y2+2,M.bed,G.int2);
+  bed(pb1+pbL*0.25-2, pb1+pbL*0.25+2, iv1+0.2, iv1+6.7);
+  bed(pb1+pbL*0.75-2, pb1+pbL*0.75+2, iv1+0.2, iv1+6.7);
+  bed((pb1+sSplit)/2-2.5, (pb1+sSplit)/2+2.5, iv2-6.9, iv2-0.2);
+  bed((sSplit+pb2)/2-3, (sSplit+pb2)/2+3, iv2-6.9, iv2-0.2);
+  ub(pb2-6, pb2-0.2, hv2+0.3, hv2+6, Y2, P2, M.part, G.int2);           // bath 1
+  ub(sSplit-6, sSplit-0.2, hv2+0.3, hv2+5, Y2, P2, M.part, G.int2);      // bath 2
   ub(z2.ldk.u1+2, z2.ldk.u1+9, iv1+5, iv1+8, Y2, Y2+2.5, M.soft, G.int2);  // sofa
   ub(z2.ldk.u1+12, z2.ldk.u1+18, W/2-1.5, W/2+1.5, Y2, Y2+2.5, M.table, G.int2);
   ub(z2.ldk.u2-10, z2.ldk.u2-1, iv1, iv1+2.4, Y2, Y2+3, M.steel, G.int2);  // parsonage kitchen
-  longWall(iv2-4.4, uB1, uB2, Y2, Y2+3.5, M.glass, G.int2, [], 0.25);    // rail at stair B
+  longWall(iv2-4.4, uB1, Math.min(uB2, L2), Y2, Y2+3.5, M.glass, G.int2, [], 0.25);    // rail at stair B
   // 2-hour fire wall at the end of the mezzanine, up to the roof
   ub(L2, L2+0.8, iv1, iv2, Y2-SLAB, EY, M.fire, G.int2);
   gableTri(L2, 0.8, M.fire, G.int2, WALL);
@@ -716,14 +750,15 @@ function build(){
   dim(new THREE.Vector3(X(L1)+5,0,zc), new THREE.Vector3(X(L1)+5,RY,zc), 'Ridge '+ftIn(RY), zT);
   dim(new THREE.Vector3(X(0)-12,FF,zOut), new THREE.Vector3(X(0)-12,FF+CLEAR1,zOut), '1F clear '+ftIn(CLEAR1), zT);
   dim(new THREE.Vector3(X(0)-12,Y2,zOut), new THREE.Vector3(X(0)-12,Y2+CLEAR2,zOut), '2F clear '+ftIn(CLEAR2), zT);
-  dim(new THREE.Vector3(X(L1)+22,0.6,-HZ), new THREE.Vector3(X(L1)+22,0.6,zN), 'Lane '+ftIn(nL), xT);
-  dim(new THREE.Vector3(X(L1)+22,0.6,zS), new THREE.Vector3(X(L1)+22,0.6,HZ), 'Lane '+ftIn(sL), xT);
+  dim(new THREE.Vector3(X(L1)+22,0.6,-hwAt(X(L1)+22)), new THREE.Vector3(X(L1)+22,0.6,zN), 'Lane '+ftIn(nL), xT);
+  dim(new THREE.Vector3(X(L1)+22,0.6,zS), new THREE.Vector3(X(L1)+22,0.6,hwAt(X(L1)+22)), 'Lane '+ftIn(sL), xT);
   if(x0 > 15) dim(new THREE.Vector3(0,0.6,zc), new THREE.Vector3(X(0),0.6,zc), 'Front '+ftIn(x0));
   if(gapE > 15) dim(new THREE.Vector3(X(L1),0.6,zc), new THREE.Vector3(LOT_L,0.6,zc), 'Back '+ftIn(gapE));
 
   // ================= PANEL =================
-  const cov = (W*L1)/(LOT_L*LOT_W)*100;
+  const cov = (W*L1)/LOT_AREA*100;
   $('out').innerHTML = [
+    ['Lot', '63′ / 62′ × 552′ <small>'+Math.round(LOT_AREA).toLocaleString()+' sf</small>'],
     ['Building width', ftIn(W)+' <small>'+met(W)+'</small>'],
     ['1st floor length', ftIn(L1)+' <small>'+met(L1)+'</small>'],
     ['2nd floor (mezzanine) length', ftIn(L2)+' <small>'+met(L2)+'</small>'],
