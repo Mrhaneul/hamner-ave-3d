@@ -183,7 +183,8 @@ const TYPE_COL = {core:0xCBD0D4, edu:0xB9D4B1, service:0xD8C7A0, fellow:0xEBCFA9
 const $ = id => document.getElementById(id);
 const view = $('view');
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+// log depth buffer: keeps near-coplanar ground layers from flickering (z-fighting) at a distance
+const renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -197,7 +198,7 @@ view.appendChild(labelR.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xC9DCEA);
 scene.fog = new THREE.Fog(0xC9DCEA, 900, 2600);
-const camera = new THREE.PerspectiveCamera(38,1,1,6000);
+const camera = new THREE.PerspectiveCamera(38,1,2,6000);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI/2 - 0.02;
@@ -218,7 +219,7 @@ function flat(w,d,c,x,z,y){
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w,d), mat(c));
   m.rotation.x = -Math.PI/2; m.position.set(x,y||0,z); m.receiveShadow = true; return m;
 }
-scene.add(flat(3000,3000,0xC8BE9F,276,0,-0.05));
+scene.add(flat(3000,3000,0xC8BE9F,276,0,-0.3));
 scene.add(flat(80,1200,0x4A4E52,-52,0,0.02));          // Hamner Ave
 scene.add(flat(12,1200,0xC9C6BC,-6,0,0.03));            // sidewalk
 for(let z=-580; z<580; z+=40){ [-32,-72].forEach(x=>scene.add(flat(0.6,14,0xF2F2EE,x,z,0.04))); }
@@ -253,20 +254,20 @@ const trees = new THREE.Group(); scene.add(trees);
   bld(120,200,-240,-170,18,C.roofW); bld(210,260,-250,-180,16,C.stucco);
   bld(300,340,-240,-190,14,C.tan); bld(350,400,-230,-200,12,C.roofG);
   bld(430,520,-250,-160,15,C.metal);
-  pad(0,110,-170,-60,C.dirt,0.02);
+  pad(0,110,-170,-60,C.dirt,0.08);
 
   // south neighbors: funeral home at the Hamner end, therapy offices, self-storage rows to the east
   pad(0,560,25,320,C.park);
   bld(15,190,32,72,16,C.stucco);
   bld(40,200,110,190,18,C.tan);
-  pad(205,240,40,300,C.grass,0.02);
+  pad(205,240,40,300,C.grass,0.08);
   bld(250,545,32,58,15,C.roofG);
   [300,370,440].forEach(x=>bld(x,x+45,80,300,14,C.roofW));
   bld(510,540,80,300,15,C.roofG);
 
   // east edge: frontage road, then the I-15
   pad(565,605,-700,700,C.fwy,0.02);
-  pad(605,640,-700,700,C.grass,0.02);
+  pad(605,640,-700,700,C.grass,0.05);
   pad(640,760,-700,700,C.fwy,0.02);
   for(let z=-680;z<700;z+=40){ [680,720].forEach(x=>scene.add(flat(0.6,14,0xF2F2EE,x,z,0.04))); }
 
@@ -278,7 +279,7 @@ const trees = new THREE.Group(); scene.add(trees);
   bld(-230,-170,-40,140,22,C.tan);
   bld(-250,-150,200,270,18,C.roofG);
   bld(-260,-200,-420,-300,20,C.stucco);
-  pad(-420,-340,-300,300,C.grass,0.012);
+  pad(-420,-340,-300,300,C.grass,0.06);
 
   // street trees and scattered trees
   const spots = [];
