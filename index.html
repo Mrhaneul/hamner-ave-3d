@@ -62,6 +62,11 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
 .bar.left{left:12px;right:230px}
 .bar.right{right:12px;flex-direction:column;align-items:flex-end}
 .bar button:disabled{opacity:.6;cursor:progress}
+.seg{display:flex}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:4px 0 0 4px}
+.seg button:last-child{border-radius:0 4px 4px 0;margin-left:-1px}
+.bar button[aria-pressed="true"].ctr{background:#1D2327;color:#FFFFFF;border-color:#1D2327}
 .bar button.icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:5px 8px}
 .bar button.icon-btn[aria-pressed="true"]{background:#1D2327;color:#FFFFFF;border-color:#1D2327}
 #hint{position:absolute;left:12px;bottom:12px;z-index:5;background:rgba(255,255,255,.9);color:#1D2327;border:1px solid #C9CFCB;border-radius:4px;padding:5px 9px;font-size:12px;pointer-events:none}
@@ -151,6 +156,10 @@ body.panel-hidden #panel{display:none}
       <button class="mode" data-mode="f2" aria-pressed="false">2nd floor</button>
     </div>
     <div class="bar right">
+      <div class="seg" role="group" aria-label="Orbit center">
+        <button class="ctr" data-center="land" aria-pressed="true">Land centered</button>
+        <button class="ctr" data-center="building" aria-pressed="false">Building centered</button>
+      </div>
       <button id="download">Download HTML</button>
       <button id="toggleDims" aria-pressed="false">Show dimensions</button>
       <button id="toggleNeighbors" aria-pressed="true">Hide nearby buildings</button>
@@ -351,6 +360,7 @@ function bm(opts){
 // ---------- state ----------
 let root = null, G = null, S = null, pickables = [];
 let mode = 'exterior';
+let centerOn = 'land';   // orbit pivot: 'land' (lot center) or 'building' (building center)
 
 function disposeRoot(){
   if(!root) return;
@@ -811,6 +821,7 @@ function build(){
   const w = $('warn'); w.hidden = !warn.length; w.textContent = warn.join(' ');
   S.glass = M.glass;
   applyMode(false);
+  if(centerOn === 'building') recenter();   // keep the pivot on the building when it moves or resizes
 }
 
 // ================= MODES =================
@@ -832,7 +843,9 @@ function applyMode(moveCam){
 }
 
 const VIEWS = {
-  aerial: s=>[[-170,300,360],[276,0,0]],
+  aerial: s=> centerOn==='building'
+    ? [[s.x0+s.L1/2-150,140,s.zc+200],[s.x0+s.L1/2,8,s.zc]]
+    : [[-170,300,360],[LOT_L/2,0,0]],
   street: s=>[[s.x0-115,7,s.zc+14],[s.x0,15,s.zc]],
   plan:   s=>[[s.x0+s.L1/2,760,1],[s.x0+s.L1/2,0,0]],
   cutaway:s=>[[s.x0-110,175,s.zS+235],[s.x0+s.L1*0.5,8,s.zc]],
@@ -840,6 +853,9 @@ const VIEWS = {
   f1:     s=>[[s.x0+s.L1/2,300,s.zc+175],[s.x0+s.L1/2,0,s.zc]],
   f2:     s=>[[s.x0+s.L1-s.L2/2,215,s.zc+125],[s.x0+s.L1-s.L2/2,12,s.zc]]
 };
+function centerPoint(){ return centerOn==='building' ? new THREE.Vector3(S.x0+S.L1/2, 8, S.zc) : new THREE.Vector3(LOT_L/2, 0, 0); }
+// shift the orbit pivot without changing the viewing angle or distance
+function recenter(){ const d = centerPoint().sub(controls.target); controls.target.add(d); camera.position.add(d); controls.update(); }
 function setView(k){ const [p,t] = VIEWS[k](S); camera.position.set(...p); controls.target.set(...t); controls.update(); }
 
 // ================= HOVER: room info =================
@@ -880,6 +896,11 @@ $('linkLanes').addEventListener('change',e=>{ if(e.target.checked){ $('sLane').v
 document.querySelectorAll('input[name="posMode"]').forEach(r=>r.addEventListener('change',build));
 $('backGap').addEventListener('input',build);
 $('pos').addEventListener('input',build);
+document.querySelectorAll('[data-center]').forEach(b=>b.addEventListener('click',()=>{
+  centerOn = b.dataset.center;
+  document.querySelectorAll('[data-center]').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  if(mode==='exterior') setView('aerial'); else recenter();
+}));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{ mode = b.dataset.mode; applyMode(true); }));
 let showNeighbors = true;
