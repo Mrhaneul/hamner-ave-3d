@@ -59,8 +59,14 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
 .note{color:var(--muted);font-size:12.5px;margin:10px 0 0}
 .warn{color:var(--warn);font-size:12.5px;margin:8px 0 0;font-weight:500}
 .bar{position:absolute;top:12px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}
-.bar.left{left:12px;right:200px}
-.bar.right{right:12px;justify-content:flex-end}
+.bar.left{left:12px;right:230px}
+.bar.right{right:12px;flex-direction:column;align-items:flex-end}
+.bar button:disabled{opacity:.6;cursor:progress}
+.bar button.icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:5px 8px}
+.bar button.icon-btn[aria-pressed="true"]{background:#1D2327;color:#FFFFFF;border-color:#1D2327}
+#hint{position:absolute;left:12px;bottom:12px;z-index:5;background:rgba(255,255,255,.9);color:#1D2327;border:1px solid #C9CFCB;border-radius:4px;padding:5px 9px;font-size:12px;pointer-events:none}
+body.panel-hidden #app{grid-template-columns:1fr}
+body.panel-hidden #panel{display:none}
 .bar button{box-shadow:0 1px 3px rgba(0,0,0,.18);font-weight:600;background:#FFFFFF;color:#1D2327;border-color:#C9CFCB}
 .bar button[aria-pressed="true"].mode{background:#1D2327;color:#FFFFFF;border-color:#1D2327}
 #tip{position:absolute;z-index:6;pointer-events:none;background:rgba(255,255,255,.95);color:#1D2327;border:1px solid #C9CFCB;border-radius:4px;padding:6px 9px;font-size:12.5px;box-shadow:0 2px 6px rgba(0,0,0,.15);max-width:260px;display:none}
@@ -74,10 +80,12 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
   #view{order:1}
   .bar.left{right:12px}
   .bar.right{top:auto;bottom:12px}
+  #hint{display:none}
+  body.panel-hidden #app{grid-template-rows:1fr}
 }
 </style>
 </head>
-<body>
+<body class="panel-hidden">
 <div id="app">
   <aside id="panel">
     <h1>2655 Hamner Ave</h1>
@@ -101,7 +109,10 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
 
     <fieldset>
       <legend>Position on lot</legend>
-      <label class="check"><input type="checkbox" id="centered" checked> Center building on the lot</label>
+      <label class="check"><input type="radio" name="posMode" value="back" checked> Set back from rear lot line
+        <input type="number" id="backGap" value="60" min="0" step="5" aria-label="Rear setback in feet" style="width:64px;margin-left:auto"> ft</label>
+      <label class="check"><input type="radio" name="posMode" value="center"> Center on the lot</label>
+      <label class="check"><input type="radio" name="posMode" value="custom"> Custom position</label>
       <div class="row"><label for="pos">Gap from Hamner lot line</label><span class="val" id="posV"></span></div>
       <input type="range" id="pos" min="0" max="272" step="1" value="136" disabled>
     </fieldset>
@@ -127,11 +138,12 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
         <button data-view="street">From Hamner</button>
         <button data-view="plan">Top</button>
       </div>
-      <p class="note">Drag to orbit, right-drag to pan, scroll to zoom.</p>
+      <p class="note">Drag to orbit around the building, right-drag to pan, scroll to zoom.</p>
     </fieldset>
   </aside>
   <div id="view">
     <div class="bar left" role="group" aria-label="Display mode">
+      <button id="togglePanel" class="icon-btn" aria-pressed="false" aria-controls="panel" aria-label="Show panel" title="Show panel"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><line x1="9.5" y1="4.5" x2="9.5" y2="19.5"/></svg></button>
       <button class="mode" data-mode="exterior" aria-pressed="true">Exterior</button>
       <button class="mode" data-mode="cutaway" aria-pressed="false">Cutaway</button>
       <button class="mode" data-mode="section" aria-pressed="false">Section A-A′</button>
@@ -139,10 +151,12 @@ summary{cursor:pointer;font-weight:600;font-size:13px;padding:2px 0 8px}
       <button class="mode" data-mode="f2" aria-pressed="false">2nd floor</button>
     </div>
     <div class="bar right">
+      <button id="download">Download HTML</button>
       <button id="toggleDims" aria-pressed="false">Show dimensions</button>
       <button id="toggleNeighbors" aria-pressed="true">Hide nearby buildings</button>
     </div>
     <div id="tip"></div>
+    <div id="hint">Drag to orbit · right-drag to pan · scroll to zoom</div>
   </div>
 </div>
 
@@ -165,11 +179,11 @@ const PROGRAM_1F = [
   {key:'edu',     name:'Nursery, classrooms 1–4, 6′ corridor',      kr:'유아실 · 교회학교 1–4 · 실내 회랑',     area:1294, type:'edu'},
   {key:'kitchen', name:'Commercial kitchen',                         kr:'상업용 조리실',                        area:506,  type:'service'},
   {key:'dining',  name:'Dining & café',                              kr:'식당 & 카페테리아',                    area:1322, type:'fellow'},
-  {key:'seating', name:'Sanctuary seating',                          kr:'대강당 회중석',                        area:2130, type:'worship'},
-  {key:'stage',   name:'Stage (24″ raised)',                         kr:'강단 무대',                            area:540,  type:'worship'}
+  {key:'stage',   name:'Stage (24″ raised)',                         kr:'강단 무대',                            area:540,  type:'worship'},
+  {key:'seating', name:'Sanctuary seating (entered from the front doors)', kr:'대강당 회중석',               area:2130, type:'worship'}
 ];
 const PROGRAM_2F = [
-  {key:'coreA', name:'Stair A landing (balcony at glass front)', kr:'계단 A 착골부 · 복도',       area:100,  type:'core'},
+  {key:'coreA', name:'Stair A landing + hall', kr:'계단 A 착골부 · 복도',       area:100,  type:'core'},
   {key:'aud',   name:'Small auditorium (youth / multi-use)', kr:'소강당',                   area:1500, type:'fellow'},
   {key:'store', name:'Storage & mechanical',                kr:'비품 수장고 & 기계실',       area:1000, type:'service'},
   {key:'ldk',   name:'Parsonage living, dining, kitchen + stair B', kr:'사택 LDK · 계단 B',  area:590,  type:'home'},
@@ -190,15 +204,18 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.localClippingEnabled = true;
+renderer.domElement.dataset.runtime = '1';
 view.insertBefore(renderer.domElement, view.firstChild);
 const labelR = new THREE.CSS2DRenderer();
 Object.assign(labelR.domElement.style,{position:'absolute',top:'0',left:'0',pointerEvents:'none'});
+labelR.domElement.dataset.runtime = '1';
 view.appendChild(labelR.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xC9DCEA);
 scene.fog = new THREE.Fog(0xC9DCEA, 900, 2600);
 const camera = new THREE.PerspectiveCamera(38,1,2,6000);
+// Building-centered orbit: drag rotates around the building, right-drag pans, scroll zooms.
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI/2 - 0.02;
@@ -365,8 +382,13 @@ function build(){
   const maxPos = Math.max(0, LOT_L - L1);
   if(L1 > LOT_L) warn.push('The 1st floor is longer than the lot at this width.');
   const pos = $('pos'); pos.max = Math.floor(maxPos);
-  if($('centered').checked) pos.value = maxPos/2;
-  const x0 = Math.min(+pos.value, maxPos);
+  const pm = document.querySelector('input[name="posMode"]:checked').value;
+  const backGap = Math.max(0, +$('backGap').value || 0);
+  const x0 = pm==='center' ? maxPos/2
+           : pm==='back'   ? Math.min(Math.max(LOT_L - L1 - backGap, 0), maxPos)
+           : Math.min(+pos.value, maxPos);
+  pos.disabled = pm !== 'custom';
+  if(pm !== 'custom') pos.value = x0;
   $('posV').textContent = ft(Math.round(x0));
   const zN = -HZ + nL, zS = HZ - sL, zc = (zN + zS)/2;
   const rise = (W/2)*PITCH, RY = EY + rise;
@@ -447,13 +469,22 @@ function build(){
   })();
   G.site.add(flat(6,W_WEST,0x9DAE86,3,0,0.12));
   [(-HZ+zN)/2,(zS+HZ)/2].forEach(z=>{ for(let x=x0+4; x<xE-4; x+=24) G.site.add(flat(10,0.6,0xF2F2EE,x+5,z,0.14)); });
-  G.site.add(flat(L1+OH_FRONT+10, W+0.01, 0xC9C6BC, x0+(L1-OH_FRONT)/2, zc, 0.13));  // walk + entry plaza
+  G.site.add(flat(L1+OH_FRONT+5, W+0.01, 0xC9C6BC, x0+(L1-OH_FRONT-5)/2, zc, 0.13));  // entry plaza at the front only; stops at the back wall
   let stalls = 0;
-  function stallRow(xa,xb){ const n = Math.floor((xb-xa)/9); if(n<1) return; for(let i=0;i<=n;i++) G.site.add(flat(0.5,18,0xF2F2EE,xa+i*9,hwAt(xa+i*9)-9,0.14)); stalls += n; }
-  stallRow(10, x0-OH_FRONT-10); stallRow(xE+8, LOT_L-4);
+  // stall row along one lot edge (side +1 = south, -1 = north): 9' x 18' stalls
+  function stallRow(xa,xb,side){ const n = Math.floor((xb-xa)/9); if(n<1) return; for(let i=0;i<=n;i++){ const x = xa+i*9; G.site.add(flat(0.5,18,0xF2F2EE,x,side*(hwAt(x)-9),0.14)); } stalls += n; }
+  // front lot only (Hamner side): double-loaded, rows on both edges with a ~25' aisle between; no striping behind the building
+  stallRow(10, x0-OH_FRONT-10, 1); stallRow(10, x0-OH_FRONT-10, -1);
 
   // ================= EXTERIOR SHELL =================
   const vN = WALL/2, vS = W - WALL/2, iv1 = WALL, iv2 = W - WALL;
+  // Interior is drawn in program order and then mirrored end-for-end about the building's midpoint,
+  // so the sanctuary sits right inside the Hamner glass front and the lobby core / mezzanine sit at the back.
+  const xc = x0 + L1/2, mir = g => { g.scale.x = -1; g.position.x = 2*xc; };
+  [G.int1, G.slab, G.int2].forEach(mir);
+  G.extM = new THREE.Group(); G.northM = new THREE.Group(); mir(G.extM); mir(G.northM);
+  G.ext.add(G.extM); G.north.add(G.northM);
+  const fromFront = u => L1 - u;            // program u -> distance from the Hamner front
   // stairs: A = public, lobby up to the front balcony; B = private, enclosed, up into the parsonage
   const uA1 = Z2.coreA.u2, uA2 = uA1 + 20;
   // stair B tops out at the west edge of the parsonage LDK and runs down eastward (over kitchen/dining, away from classrooms)
@@ -463,17 +494,19 @@ function build(){
     ub(0, L1, v-WALL/2, v+WALL/2, 0, EY, M.wall, p);
     ub(-0.1, L1+0.1, v-WALL/2-0.12, v+WALL/2+0.12, 0, 2, M.plinth, p);
   });
-  // east end wall + gable
+  // east end wall + gable, with the base trim wrapped around this end
   ub(L1-WALL, L1, 0, W, 0, EY, M.wall, G.ext);
+  ub(L1-WALL, L1+0.12, -0.12, W+0.12, 0, 2, M.plinth, G.ext);
+  ub(L1-WALL-0.1, L1+0.15, W/2-4, W/2+4, FF, FF+8.5, M.door, G.ext, false);   // rear entrance into the lobby core
   gableTri(L1-WALL, WALL, M.wall, G.ext);
   // window / door makers (thru-wall boxes so they read from both sides)
   function win(side,u1,u2,y1,y2){
-    const v = side==='n' ? vN : vS, p = side==='s' ? G.north : G.ext;
+    const v = side==='n' ? vN : vS, p = side==='s' ? G.northM : G.extM;
     ub(u1,u2,v-0.55,v+0.55,y1,y2,M.frame,p,false);
     ub(u1+0.25,u2-0.25,v-0.62,v+0.62,y1+0.25,y2-0.25,M.pane,p,false);
   }
   function door(side,u1,u2,h,m){
-    const v = side==='n' ? vN : vS, p = side==='s' ? G.north : G.ext;
+    const v = side==='n' ? vN : vS, p = side==='s' ? G.northM : G.extM;
     ub(u1,u2,v-0.6,v+0.6,FF,FF+h,m||M.door,p,false);
   }
   function along(u1,u2,step,w,fn){ const n = Math.max(1, Math.floor((u2-u1)/step)); const s=(u2-u1)/n; for(let i=0;i<n;i++){ const c=u1+s*(i+0.5); fn(c-w/2,c+w/2,c); } }
@@ -499,7 +532,7 @@ function build(){
   for(let u = Math.ceil(z1.seating.u1/16)*16 + 8; u < z1.seating.u2 - 6; u += 16){
     win('n', u-1.25, u+1.25, FF+4, FF+20); win('s', u-1.25, u+1.25, FF+4, FF+20);
   }
-  door('n', z1.seating.u2-6, z1.seating.u2, 8); door('s', z1.seating.u2-6, z1.seating.u2, 8);
+  door('n', z1.seating.u1, z1.seating.u1+6, 8); door('s', z1.seating.u1, z1.seating.u1+6, 8);   // exits beside the stage
   // 2F windows
   // parsonage bedroom block: bedrooms 3-4 on the north side of a center hall, suites 2 and 1 on the south side
   const pb1 = z2.b34.u1, pb2 = Math.min(z2.s1.u2, L2), pbL = pb2 - pb1;
@@ -509,7 +542,7 @@ function build(){
   [[pb1,sSplit],[sSplit,pb2]].forEach(([a,b])=>{ const c=(a+b)/2; win('s',c-2,c+2,Y2+3,Y2+7.5); });
   along(z2.ldk.u1, z2.ldk.u2, 12, 8, (a,b)=>{ win('n',a,b,Y2+2.5,Y2+8); });
   along(z2.aud.u1, z2.aud.u2, 12, 5, (a,b)=>{ win('n',a,b,Y2+3,Y2+8); win('s',a,b,Y2+3,Y2+8); });
-  along(z2.store.u1+4, z2.store.u2-4, 10, 4, (a,b)=>ub(a,b,vS-0.6,vS+0.6,Y2+4,Y2+7,M.metal,G.north,false)); // louvers
+  along(z2.store.u1+4, z2.store.u2-4, 10, 4, (a,b)=>ub(a,b,vS-0.6,vS+0.6,Y2+4,Y2+7,M.metal,G.northM,false)); // louvers
 
   // ---------- west (Hamner) facade: timber + glass gable ----------
   const fl = Math.min(3.5, W*0.14);
@@ -575,7 +608,7 @@ function build(){
   const P1 = FF + CLEAR1;                 // partition top / slab underside
   const info = (z, floor, extra) => Object.assign({name:z.name, kr:z.kr, floor, sf:z.a, w:W, l:z.len}, extra||{});
   const cw = Math.min(6, W*0.28);
-  plate(0, z1.core.u2, iv1, iv2, FF, 'core', info(z1.core,'1F'), G.int1);
+  plate(WALL, z1.core.u2, iv1, iv2, FF, 'core', info(z1.core,'1F'), G.int1);
   const cv1 = dbl ? (iv1+iv2)/2 - cw/2 : iv2 - cw, cv2 = cv1 + cw;   // corridor band
   const eduInfo = (a,b) => info(z1.edu,'1F',{w:b-a, sf:(b-a)*z1.edu.len});
   plate(z1.edu.u1, z1.edu.u2, iv1, cv1, FF, 'edu', eduInfo(iv1,cv1), G.int1);
@@ -645,15 +678,16 @@ function build(){
       p.position.set(X(u), FF+1.15, Z(v)); G.int1.add(p);
     });
   }
-  // STC 50 movable wall between dining and sanctuary
-  for(let v = iv1; v < iv2 - 0.1; v += 4){
-    ub(z1.dining.u2-0.4, z1.dining.u2+0.4, v+0.06, Math.min(v+3.94, iv2), FF, P1, M.move, G.int1);
-  }
+  // wall behind the stage, full height to the roof (dining is on the other side)
+  // 4' side passages on both sides of the stage lead through door openings to the dining room and the rest of the building
+  crossWall(z1.stage.u1, iv1, iv2, FF, FF+8, M.part, G.int1, [[iv1+0.5, iv1+4],[iv2-4, iv2-0.5]], 0.8);
+  ub(z1.stage.u1-0.4, z1.stage.u1+0.4, iv1, iv2, FF+8, EY, M.part, G.int1);
+  gableTri(z1.stage.u1-0.4, 0.8, M.part, G.int1, WALL);
 
   // sanctuary: seats with center aisle, 24″ stage, LED wall, pulpit
   const aisle = 4, side = 2.5, blockW = (iv2 - iv1 - aisle - 2*side)/2, perSide = Math.max(1, Math.floor(blockW/2));
   const rows = [];
-  for(let u = z1.seating.u1 + 5; u <= z1.seating.u2 - 5; u += 3) rows.push(u);
+  for(let u = z1.seating.u1 + 5; u <= z1.seating.u2 - 8; u += 3) rows.push(u);   // ~8' foyer zone inside the front doors
   const seatCount = rows.length * perSide * 2;
   const seats = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7,2.9,1.7), M.seat, seatCount);
   const m4 = new THREE.Matrix4(); let si = 0;
@@ -663,16 +697,16 @@ function build(){
     }
   });
   seats.castShadow = true; G.int1.add(seats);
-  const sa = z1.stage.u1, se = L1 - WALL;
-  ub(sa+1, se, iv1, iv2, FF, FF+2, M.stage, G.int1);
-  ub(sa, sa+1, W/2-4, W/2+4, FF, FF+1, M.stage, G.int1);
-  ub(sa+4, sa+6, W/2-1.5, W/2+1.5, FF+2, FF+6, M.table, G.int1);
+  const sb = z1.stage.u1 + 0.4, sf = z1.stage.u2;          // stage back wall, stage front edge (faces the seats)
+  ub(sb, sf-1, iv1+4, iv2-4, FF, FF+2, M.stage, G.int1);
+  ub(sf-1, sf, W/2-4, W/2+4, FF, FF+1, M.stage, G.int1);
+  ub(sf-6, sf-4, W/2-1.5, W/2+1.5, FF+2, FF+6, M.table, G.int1);
   const ledW = Math.min(iv2-iv1-4, 18);
-  ub(se-0.4, se, W/2-ledW/2, W/2+ledW/2, FF+5, FF+15, M.led, G.int1, false);
+  ub(sb, sb+0.4, W/2-ledW/2, W/2+ledW/2, FF+5, FF+15, M.led, G.int1, false);
 
   // ================= MEZZANINE SLAB =================
   [[iv1, iv1+4.3, [[uA1, uA2]]], [iv1+4.3, iv2-4.4, []], [iv2-4.4, iv2, [[uB1, uB2]]]].forEach(([a,b,gaps])=>{
-    segs(0, L2, gaps).forEach(([p,q])=>ub(p, q, a, b, Y2-SLAB, Y2, M.slab, G.slab));
+    segs(WALL, L2, gaps).forEach(([p,q])=>ub(p, q, a, b, Y2-SLAB, Y2, M.slab, G.slab));
   });
 
   // ================= INTERIOR — 2ND FLOOR =================
@@ -680,7 +714,7 @@ function build(){
   function plate2(z){
     const inf = info(z,'2F');
     [[iv1, iv1+4.3, [[uA1, uA2]]], [iv1+4.3, iv2-4.4, []], [iv2-4.4, iv2, [[uB1, uB2]]]].forEach(([a,b,gaps])=>{
-      segs(z.u1, Math.min(z.u2, L2), gaps).forEach(([p,q])=>plate(p, q, a, b, Y2+0.05, z.type, inf, G.int2));
+      segs(Math.max(z.u1, WALL), Math.min(z.u2, L2), gaps).forEach(([p,q])=>plate(p, q, a, b, Y2+0.05, z.type, inf, G.int2));
     });
   }
   ['coreA','aud','store','ldk'].forEach(k=>plate2(z2[k]));
@@ -744,13 +778,13 @@ function build(){
   }
   const zOut = zS + 4, xT = new THREE.Vector3(1.2,0,0), zT = new THREE.Vector3(0,0,1.2);
   dim(new THREE.Vector3(X(0),FF,zOut), new THREE.Vector3(X(L1),FF,zOut), 'Building '+ftIn(L1));
-  dim(new THREE.Vector3(X(0),Y2,zOut), new THREE.Vector3(X(L2),Y2,zOut), '2F mezzanine '+ftIn(L2));
-  dim(new THREE.Vector3(X(z1.seating.u1),FF+6,zOut), new THREE.Vector3(X(L1),FF+6,zOut), 'Sanctuary + stage '+ftIn(L1-z1.seating.u1));
+  dim(new THREE.Vector3(X(L1-L2),Y2,zOut), new THREE.Vector3(X(L1),Y2,zOut), '2F mezzanine '+ftIn(L2));
+  dim(new THREE.Vector3(X(0),FF+6,zOut), new THREE.Vector3(X(fromFront(z1.stage.u1)),FF+6,zOut), 'Sanctuary + stage '+ftIn(fromFront(z1.stage.u1)));
   dim(new THREE.Vector3(X(L1)+8,FF,zN), new THREE.Vector3(X(L1)+8,FF,zS), 'Width '+ftIn(W), xT);
   dim(new THREE.Vector3(X(L1)+5,0,zS), new THREE.Vector3(X(L1)+5,EY,zS), 'Eave '+ftIn(EY), zT);
   dim(new THREE.Vector3(X(L1)+5,0,zc), new THREE.Vector3(X(L1)+5,RY,zc), 'Ridge '+ftIn(RY), zT);
-  dim(new THREE.Vector3(X(0)-12,FF,zOut), new THREE.Vector3(X(0)-12,FF+CLEAR1,zOut), '1F clear '+ftIn(CLEAR1), zT);
-  dim(new THREE.Vector3(X(0)-12,Y2,zOut), new THREE.Vector3(X(0)-12,Y2+CLEAR2,zOut), '2F clear '+ftIn(CLEAR2), zT);
+  dim(new THREE.Vector3(X(L1)+14,FF,zOut), new THREE.Vector3(X(L1)+14,FF+CLEAR1,zOut), '1F clear '+ftIn(CLEAR1), zT);
+  dim(new THREE.Vector3(X(L1)+14,Y2,zOut), new THREE.Vector3(X(L1)+14,Y2+CLEAR2,zOut), '2F clear '+ftIn(CLEAR2), zT);
   dim(new THREE.Vector3(X(L1)+22,0.6,-hwAt(X(L1)+22)), new THREE.Vector3(X(L1)+22,0.6,zN), 'Lane '+ftIn(nL), xT);
   dim(new THREE.Vector3(X(L1)+22,0.6,zS), new THREE.Vector3(X(L1)+22,0.6,hwAt(X(L1)+22)), 'Lane '+ftIn(sL), xT);
   if(x0 > 15) dim(new THREE.Vector3(0,0.6,zc), new THREE.Vector3(X(0),0.6,zc), 'Front '+ftIn(x0));
@@ -768,11 +802,11 @@ function build(){
     ['Sanctuary seats (drawn)', seatCount+' <small>3′ rows</small>'],
     ['Open lot, Hamner / back', ftIn(x0)+' / '+ftIn(gapE)],
     ['Lot coverage', cov.toFixed(1)+'%'],
-    ['Rough stall count', stalls+' <small>single row</small>']
+    ['Rough stall count', stalls+' <small>front lot, 2 rows</small>']
   ].map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
   const hex = c => '#'+c.toString(16).padStart(6,'0');
   const schedRows = (title, Z) => '<tr class="fl"><td></td><td>'+title+'</td><td></td></tr>' +
-    Object.values(Z).map(z=>'<tr><td><span class="sw" style="background:'+hex(TYPE_COL[z.type])+'"></span></td><td>'+z.name+'<br><small>'+z.kr+' · '+ft(W)+' × '+ft(z.len)+'</small></td><td>'+Math.round(z.a).toLocaleString()+' sf</td></tr>').join('');
+    Object.values(Z).reverse().map(z=>'<tr><td><span class="sw" style="background:'+hex(TYPE_COL[z.type])+'"></span></td><td>'+z.name+'<br><small>'+z.kr+' · '+ft(W)+' × '+ft(z.len)+'</small></td><td>'+Math.round(z.a).toLocaleString()+' sf</td></tr>').join('');
   $('sched').innerHTML = schedRows('1st floor, west to east', Z1) + schedRows('2nd floor, west to east', Z2);
   const w = $('warn'); w.hidden = !warn.length; w.textContent = warn.join(' ');
   S.glass = M.glass;
@@ -804,7 +838,7 @@ const VIEWS = {
   cutaway:s=>[[s.x0-110,175,s.zS+235],[s.x0+s.L1*0.5,8,s.zc]],
   section:s=>[[s.x0+s.L1/2,17,s.zS+265],[s.x0+s.L1/2,15,s.zc]],
   f1:     s=>[[s.x0+s.L1/2,300,s.zc+175],[s.x0+s.L1/2,0,s.zc]],
-  f2:     s=>[[s.x0+s.L2/2,215,s.zc+125],[s.x0+s.L2/2,12,s.zc]]
+  f2:     s=>[[s.x0+s.L1-s.L2/2,215,s.zc+125],[s.x0+s.L1-s.L2/2,12,s.zc]]
 };
 function setView(k){ const [p,t] = VIEWS[k](S); camera.position.set(...p); controls.target.set(...t); controls.update(); }
 
@@ -843,7 +877,8 @@ renderer.domElement.addEventListener('pointerleave', ()=>{ tip.style.display = '
 }));
 $('linkLanes').addEventListener('change',e=>{ if(e.target.checked){ $('sLane').value=$('nLane').value; build(); }});
 ['a1','a2'].forEach(id=>$(id).addEventListener('change',build));
-$('centered').addEventListener('change',e=>{ $('pos').disabled = e.target.checked; build(); });
+document.querySelectorAll('input[name="posMode"]').forEach(r=>r.addEventListener('change',build));
+$('backGap').addEventListener('input',build);
 $('pos').addEventListener('input',build);
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{ mode = b.dataset.mode; applyMode(true); }));
@@ -854,6 +889,48 @@ $('toggleNeighbors').addEventListener('click',e=>{
   e.target.textContent = showNeighbors ? 'Hide nearby buildings' : 'Show nearby buildings';
   e.target.setAttribute('aria-pressed', String(showNeighbors));
 });
+$('togglePanel').addEventListener('click',e=>{
+  const hidden = document.body.classList.toggle('panel-hidden');
+  const lbl = hidden ? 'Show panel' : 'Hide panel';
+  e.currentTarget.setAttribute('aria-label', lbl); e.currentTarget.title = lbl;
+  e.currentTarget.setAttribute('aria-pressed', String(!hidden));
+});
+
+// ---- Download this page as a standalone .html ----
+async function pageSource(){
+  try{
+    if(/^https?:$/.test(location.protocol)){
+      const r = await fetch(location.href, {cache:'no-store'});
+      if(r.ok){ const t = await r.text(); if(t.includes('id="toggleDims"')) return t; }
+    }
+  }catch(err){}
+  // fallback: rebuild the source from the live document, minus runtime-generated nodes
+  const doc = document.documentElement.cloneNode(true);
+  doc.querySelectorAll('[data-runtime]').forEach(n=>n.remove());
+  ['out','sched','tip'].forEach(id=>{ const n = doc.querySelector('#'+id); if(n) n.innerHTML = ''; });
+  const b = doc.querySelector('body'); if(b){ b.className = 'panel-hidden'; b.removeAttribute('style'); }
+  const tp = doc.querySelector('#togglePanel'); if(tp){ tp.setAttribute('aria-label','Show panel'); tp.title = 'Show panel'; tp.setAttribute('aria-pressed','false'); }
+  return '<!doctype html>\n' + doc.outerHTML;
+}
+$('download').addEventListener('click', async e=>{
+  const btn = e.currentTarget, label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  try{
+    const html = await pageSource(), filename = 'hamner-ave-3d.html';
+    let handled = false;
+    if(window.claude && typeof window.claude.use === 'function'){
+      const dl = await window.claude.use('downloads');
+      if(dl){ handled = true; try{ await dl.save({filename, data:html}); }catch(err){ if(!err || err.code !== 'declined') console.warn('Download not completed:', err && err.code); } }
+    }
+    if(!handled){
+      const url = URL.createObjectURL(new Blob([html], {type:'text/html'}));
+      const a = document.createElement('a'); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    }
+  } finally { btn.disabled = false; btn.textContent = label; }
+});
+
 $('toggleDims').addEventListener('click',e=>{
   const on = document.body.classList.toggle('show-dims');
   G.dims.visible = true;

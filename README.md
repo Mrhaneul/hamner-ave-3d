@@ -6,13 +6,14 @@ Interactive Three.js model of the proposed church building at 2655 Hamner Ave, N
 
 ## What it shows
 
-- 7,000 sq ft first floor and 4,000 sq ft mezzanine, centered on the lot with a 12′ drive lane on the north and south sides (measured at the narrow east end)
-- One continuous gable roof: 24′ eave, 6:12 pitch, exposed timber trusses (the high vault from the master plan deck)
-- Room layout scaled from the deck's area tables (pages 3 and 4)
+- 7,000 sq ft first floor and 4,000 sq ft mezzanine on a 38′-wide footprint, with a 12′ drive lane on the north and south sides (measured at the narrow east end)
+- Building set 60′ from the rear lot line by default (centered or custom positions available), with double-loaded parking striped in the front lot
+- Front doors open into the sanctuary under the high vault, stage at the far end; dining, kitchen, classrooms and the lobby core follow, with the mezzanine over the back half
+- One continuous gable roof: 24′ eave, 6:12 pitch, exposed timber trusses
+- Room layout scaled from the master plan deck's area tables (pages 3 and 4)
 - Exterior, cutaway, longitudinal section and per-floor views, toggleable dimensions, and room info on hover
+- Collapsible side panel (hidden by default) and a Download HTML button
 - Approximate surroundings traced from a printed aerial; not surveyed
-
-Sliders adjust lane widths, floor areas and building position, and everything recomputes live.
 
 ## Run locally
 
